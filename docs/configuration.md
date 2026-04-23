@@ -1,29 +1,30 @@
-# 設定リファレンス
+# Configuration Reference
 
-## 環境変数
+[日本語版](configuration_ja.md)
 
-| 変数名 | 必須 | デフォルト | 説明 |
+## Environment Variables
+
+| Variable | Required | Default | Description |
 |---|---|---|---|
-| `SLACK_BOT_TOKEN` | ✅ | — | `xoxb-...` 形式の Bot Token |
-| `SLACK_APP_TOKEN` | ✅ | — | `xapp-...` 形式の App-level Token |
-| `CLAUDE_PROJECT_DIR` | ✅ | — | Claude Code のセッションファイルが保存されるディレクトリ |
-| `CLAUDE_PATH` | — | `claude` | Claude Code CLI のフルパス |
-| `SESSION_DB_PATH` | — | `sessions.db` | SQLite ファイルのパス |
-| `CLAUDE_TIMEOUT` | — | `10800` | タイムアウト秒数（デフォルト: 3時間） |
+| `SLACK_BOT_TOKEN` | ✅ | — | Bot Token (`xoxb-...`) |
+| `SLACK_APP_TOKEN` | ✅ | — | App-level Token (`xapp-...`) |
+| `CLAUDE_PROJECT_DIR` | ✅ | — | Directory where Claude Code stores session files |
+| `CLAUDE_PATH` | — | `claude` | Full path to the Claude Code CLI binary |
+| `SESSION_DB_PATH` | — | `sessions.db` | Path to the SQLite database file |
+| `CLAUDE_TIMEOUT` | — | `10800` | Timeout in seconds (default: 3 hours) |
 
 ---
 
-## CLAUDE_PROJECT_DIR の確認方法
+## How to Find CLAUDE_PROJECT_DIR
 
-Claude Code はセッションファイルを `~/.claude/projects/` 以下に保存する。  
-ディレクトリ名は作業ディレクトリのパスの `/` を `-` に変換したもの。
+Claude Code stores session files under `~/.claude/projects/`. The directory name is the working directory path with `/` replaced by `-`.
 
 ```bash
 ls ~/.claude/projects/
-# 例: -home-fumihiko-takahashi-cvpr-accident
+# e.g. -home-alice-myproject
 ```
 
-プロジェクトディレクトリが `/home/alice/myproject` の場合：
+If the project directory is `/home/alice/myproject`:
 
 ```
 CLAUDE_PROJECT_DIR=~/.claude/projects/-home-alice-myproject
@@ -31,25 +32,25 @@ CLAUDE_PROJECT_DIR=~/.claude/projects/-home-alice-myproject
 
 ---
 
-## CLAUDE_PATH の確認方法
+## How to Find CLAUDE_PATH
 
 ```bash
 which claude
-# 例: /home/fumihiko.takahashi/.local/bin/claude
+# e.g. /home/alice/.local/bin/claude
 ```
 
-`claude` とだけ指定すると systemd や cron など PATH を引き継がない環境で `No such file or directory` になる。  
-フルパスを指定しておくのが確実。
+Using just `claude` (without a full path) will fail in environments that do not inherit the shell PATH, such as systemd or cron.  
+Always specify the full path.
 
 ---
 
-## ClaudeRunner のオプション（プログラム利用時）
+## ClaudeRunner Options (programmatic use)
 
 ```python
 ClaudeRunner(
-    project_dir="~/.claude/projects/-home-alice-myproject",  # CLAUDE_PROJECT_DIR に相当
-    claude_path="/home/alice/.local/bin/claude",             # CLAUDE_PATH に相当
-    timeout=10800,                                           # CLAUDE_TIMEOUT に相当
-    extra_args=["--model", "claude-opus-4-6"],               # 追加フラグ（任意）
+    project_dir="~/.claude/projects/-home-alice-myproject",  # equivalent to CLAUDE_PROJECT_DIR
+    claude_path="/home/alice/.local/bin/claude",             # equivalent to CLAUDE_PATH
+    timeout=10800,                                           # equivalent to CLAUDE_TIMEOUT
+    extra_args=["--model", "claude-opus-4-6"],               # additional flags (optional)
 )
 ```

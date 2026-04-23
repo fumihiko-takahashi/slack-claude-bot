@@ -1,8 +1,10 @@
-# 内部実装の詳細
+# Internals
 
-## なぜ `--dangerously-skip-permissions` が必要か
+[日本語版](internals_ja.md)
 
-Claude Code は通常、ファイル書き込みやコマンド実行の前にターミナルで確認を求める：
+## Why `--dangerously-skip-permissions` is required
+
+Claude Code normally shows a confirmation prompt in the terminal before writing files or running commands:
 
 ```
 Do you want to run this command?
@@ -10,62 +12,60 @@ Do you want to run this command?
 ❯ Yes  No
 ```
 
-subprocess から呼び出した場合、stdin が繋がっていないためこのプロンプトで処理が無限にブロックされる。  
-`--dangerously-skip-permissions` はこの確認をスキップするフラグ。
+When invoked via subprocess, stdin is not connected to a terminal, so this prompt blocks indefinitely. The `--dangerously-skip-permissions` flag skips all such prompts.
 
-このライブラリは個人用途・実験専用インスタンスでの利用を前提としており、Slack ワークスペースのメンバーを信頼できる環境での使用を想定している。
+This library is designed for personal use on a dedicated instance where the Slack workspace members are trusted. Use with caution in shared environments.
 
 ---
 
-## セッション管理の仕組み
+## Session Management
 
-### スレッドとセッションの対応
+### Thread-to-session mapping
 
-Slack の `thread_ts`（スレッドのタイムスタンプ）をキーに、Claude Code の `session_id` を SQLite で管理する。
+Slack's `thread_ts` (thread timestamp) is used as the key to map to a Claude Code `session_id` stored in SQLite.
 
 ```
 Slack thread_ts  ↔  Claude Code session_id
    "1234567890"  →  "abc12345-..."
 ```
 
-同じスレッドへの返信が来たとき `--resume <session_id>` で会話を継続する。
+When a reply arrives in an existing thread, `--resume <session_id>` continues the conversation.
 
-### セッション ID の取得方法
+### How session IDs are obtained
 
-`--session-id` フラグには以下の制約がある（実際に試して判明）：
+The `--session-id` flag has the following constraints (discovered through testing):
 
-- `--resume` なしで `--session-id` 単体 → エラー
-- `--session-id` と `--resume` の同時指定 → エラー（`--fork-session` が必要と言われる）
+- `--session-id` alone (new session) → error
+- `--session-id` combined with `--resume` → error (`--fork-session` required)
 
-そのため、新規セッションはフラグなしで実行し、完了後に `~/.claude/projects/{project_dir}/` 以下の最新 `.jsonl` ファイル名からセッション ID を取得する。
+The correct approach: start a new session with no flags, then retrieve the session ID from the newest `.jsonl` file under `~/.claude/projects/{project_dir}/` after the run completes.
 
 ```python
-# runner.py の実装イメージ
 def _latest_session_id(self):
     files = glob.glob(f"{self.project_dir}/*.jsonl")
     latest = max(files, key=os.path.getmtime)
     return os.path.basename(latest).replace(".jsonl", "")
 ```
 
-### ロックの仕組み
+---
 
-同一スレッドへの連続メッセージで Claude が並列起動しないよう、SQLite の `locks` テーブルで排他制御している。  
-`INSERT` の一意制約（`thread_ts` が PRIMARY KEY）を利用しており、二重取得時は `IntegrityError` が発生してロック失敗と判断する。
+## Lock Mechanism
 
-TTL（デフォルト: runner の timeout + 30分）を超えた残留ロックは次回の `acquire_lock` 時に自動削除される。  
-起動時にも `clear_all_locks()` を呼び出してクラッシュ時の残留ロックをクリアする。
+A `locks` table in SQLite prevents the same thread from spawning multiple Claude processes concurrently. The exclusive constraint relies on `thread_ts` being a `PRIMARY KEY` — a duplicate `INSERT` raises `IntegrityError`, which is treated as a lock failure.
+
+Stale locks (older than the runner timeout + 30 min buffer) are automatically deleted at the next `acquire_lock` call. Locks are also cleared on startup via `clear_all_locks()` to recover from crashes.
 
 ---
 
-## タイムアウト時の挙動
+## Timeout Behavior
 
-`subprocess.run()` はタイムアウト時に内部で `process.kill()` を呼ぶため、Claude のプロセスは強制終了される（バックグラウンドで継続することはない）。
+`subprocess.run()` calls `process.kill()` on timeout, so Claude's process is terminated immediately — it does not continue running in the background.
 
-タイムアウト後でもセッション ID を取得・保存しておくことで、次のメッセージで `--resume` による再開が可能：
+Even after a timeout, the session ID is retrieved and saved so that the next message can resume the conversation via `--resume`:
 
 ```python
 except subprocess.TimeoutExpired:
     if not session_id:
         session_id = self._latest_session_id()
-    return "⏱ タイムアウトしました。続きから再開するには返信してください。", session_id
+    return "⏱ Timed out. Reply to this thread to resume.", session_id
 ```

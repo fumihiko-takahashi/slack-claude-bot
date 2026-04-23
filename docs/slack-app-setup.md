@@ -1,49 +1,51 @@
-# Slack App のセットアップ
+# Slack App Setup
 
-## 1. App の作成
+[日本語版](slack-app-setup_ja.md)
 
-https://api.slack.com/apps にアクセスし、"Create New App" → "From scratch" を選択。
+## 1. Create the App
 
-## 2. Bot Token Scopes の設定
+Go to https://api.slack.com/apps and click "Create New App" → "From scratch".
 
-"OAuth & Permissions" → "Bot Token Scopes" に以下を追加：
+## 2. Configure Bot Token Scopes
 
-| Scope | 用途 |
+"OAuth & Permissions" → "Bot Token Scopes" → add the following:
+
+| Scope | Purpose |
 |---|---|
-| `app_mentions:read` | メンションの受信 |
-| `chat:write` | メッセージの送信 |
-| `channels:history` | パブリックチャンネルの履歴読み取り |
-| `groups:history` | プライベートチャンネルも使う場合 |
+| `app_mentions:read` | Receive mentions |
+| `chat:write` | Send messages |
+| `channels:history` | Read public channel history |
+| `groups:history` | Required for private channels (optional) |
 
-## 3. Socket Mode の有効化
+## 3. Enable Socket Mode
 
-"Socket Mode" → Enable Socket Mode を ON にし、App-Level Token を生成する。
+"Socket Mode" → Enable Socket Mode → generate an App-Level Token.
 
-- Token Name: 任意（例: `socket-token`）
+- Token Name: any (e.g. `socket-token`)
 - Scope: `connections:write`
-- 生成された `xapp-...` トークンをメモしておく
+- Save the generated `xapp-...` token
 
-## 4. Event Subscriptions の設定
+## 4. Configure Event Subscriptions
 
-"Event Subscriptions" → Enable Events を ON → "Subscribe to bot events" に `app_mention` を追加。
+"Event Subscriptions" → Enable Events → "Subscribe to bot events" → add `app_mention`.
 
-## 5. ワークスペースへのインストール
+## 5. Install to Workspace
 
-"OAuth & Permissions" → "Install to Workspace" を実行。  
-生成された Bot User OAuth Token (`xoxb-...`) をメモしておく。
+"OAuth & Permissions" → "Install to Workspace".  
+Save the generated Bot User OAuth Token (`xoxb-...`).
 
 ---
 
-## トークンの種類と混乱しがちな点
+## Token Types — Common Source of Confusion
 
-このライブラリで使うトークンは2種類だけ：
+This library uses exactly two tokens:
 
-| 環境変数 | プレフィックス | 取得場所 |
+| Environment variable | Prefix | Where to find it |
 |---|---|---|
 | `SLACK_BOT_TOKEN` | `xoxb-...` | "OAuth & Permissions" → "Bot User OAuth Token" |
 | `SLACK_APP_TOKEN` | `xapp-...` | "Basic Information" → "App-Level Tokens" |
 
-### `xoxe.xoxp-...` が表示された場合
+### If you see `xoxe.xoxp-...`
 
-Token Rotation が有効になっている User Token を見ている。Bot Token は同じページの別の行にある。  
-Token Rotation が不要であれば "OAuth & Permissions" → "Advanced" から無効化できる。個人用途では不要な機能。
+That is a User Token with Token Rotation enabled — not the Bot Token. The Bot Token is on a separate row of the same page.  
+If Token Rotation is not needed, disable it under "OAuth & Permissions" → "Advanced". It is unnecessary for personal use.

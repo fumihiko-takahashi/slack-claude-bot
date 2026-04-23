@@ -1,10 +1,10 @@
-# Deployment
+# デプロイ・常駐化
 
-[日本語版](deployment_ja.md)
+[English version](deployment.md)
 
-## systemd (Linux / GCE)
+## systemd による常駐化（Linux / GCE 推奨）
 
-### Create the service file
+### サービスファイルの作成
 
 ```ini
 # /etc/systemd/system/slack-claude-bot.service
@@ -29,9 +29,10 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-> **Note**: Do not write just `claude` for `CLAUDE_PATH`. systemd does not inherit the shell PATH, which causes a `No such file or directory` error. Confirm the full path with `which claude` first.
+> **注意**: `CLAUDE_PATH` に `claude` とだけ書くと systemd の起動時に PATH が引き継がれず失敗する。  
+> `which claude` でフルパスを確認してから指定すること。
 
-### Enable and start
+### 起動・有効化
 
 ```bash
 sudo systemctl daemon-reload
@@ -39,13 +40,13 @@ sudo systemctl enable slack-claude-bot
 sudo systemctl start slack-claude-bot
 ```
 
-### View logs
+### ログの確認
 
 ```bash
 sudo journalctl -u slack-claude-bot -f
 ```
 
-### Stop and disable
+### 停止・無効化
 
 ```bash
 sudo systemctl stop slack-claude-bot
@@ -54,9 +55,9 @@ sudo systemctl disable slack-claude-bot
 
 ---
 
-## Programmatic entry point
+## プログラム利用時のエントリーポイント例
 
-When using custom commands, point `ExecStart` at a script like this instead of `-m slack_claude_bot`:
+カスタムコマンドを追加する場合は、`-m slack_claude_bot` の代わりに以下のようなスクリプトを `ExecStart` に指定する：
 
 ```python
 # main.py
@@ -75,10 +76,10 @@ bot = SlackClaudeBot(
     db=db,
 )
 
-# Add project-specific commands here
-# @bot.command("!status", description="Show status")
+# プロジェクト固有のカスタムコマンドをここに追加
+# @bot.command("!status", description="現在のステータスを表示")
 # def handle_status(channel, thread_ts, text):
-#     return "Running"
+#     return "正常稼働中"
 
 bot.start()
 ```
