@@ -22,11 +22,57 @@ Slack のメンション・スレッド返信を [Claude Code](https://claude.ai
 
 パブリックなワークスペースや不特定多数が参加するワークスペースでは使用しないでください。
 
-## インストール
+## インストールとセットアップ
+
+### Step 1 — Slack App を作成する
+
+1. https://api.slack.com/apps にアクセス → "Create New App" → "From scratch"
+2. **OAuth & Permissions** → Bot Token Scopes → `app_mentions:read`, `chat:write`, `channels:history` を追加
+3. **Socket Mode** → Enable → App-Level Token を生成（scope: `connections:write`）→ `xapp-...` トークンをメモ
+4. **Event Subscriptions** → Enable → Subscribe to bot events → `app_mention` を追加
+5. **OAuth & Permissions** → Install to Workspace → `xoxb-...` Bot Token をメモ
+
+> 必要なトークンは2つ: `SLACK_BOT_TOKEN`（`xoxb-...`）と `SLACK_APP_TOKEN`（`xapp-...`）。  
+> `xoxe.xoxp-...` が表示された場合は User Token を見ている — Bot Token は別の行にある。  
+> 詳細は [docs/slack-app-setup_ja.md](docs/slack-app-setup_ja.md) を参照。
+
+### Step 2 — ライブラリをインストールする
 
 ```bash
 pip install git+ssh://git@github.com/fumihiko-takahashi/slack-claude-bot.git
 ```
+
+### Step 3 — 環境変数を設定する
+
+```bash
+# Claude Code のセッションディレクトリを確認
+ls ~/.claude/projects/
+# 例: -home-alice-myproject
+
+# claude コマンドのフルパスを確認
+which claude
+# 例: /home/alice/.local/bin/claude
+
+export SLACK_BOT_TOKEN=xoxb-...
+export SLACK_APP_TOKEN=xapp-...
+export CLAUDE_PROJECT_DIR=~/.claude/projects/-home-alice-myproject
+export CLAUDE_PATH=/home/alice/.local/bin/claude
+```
+
+> `CLAUDE_PROJECT_DIR`: 作業ディレクトリのパスの `/` を `-` に変換したもの（`~/.claude/projects/` 以下）。  
+> `CLAUDE_PATH`: systemd など PATH を引き継がない環境で詰まらないよう、必ずフルパスで指定する。  
+> 全オプションは [docs/configuration_ja.md](docs/configuration_ja.md) を参照。
+
+### Step 4 — 起動する
+
+```bash
+python -m slack_claude_bot
+# または
+slack-claude-bot
+```
+
+招待したチャンネルでボットをメンションすると、スレッド内で返信する。  
+systemd による常駐化は [docs/deployment_ja.md](docs/deployment_ja.md) を参照。
 
 ## クイックスタート
 

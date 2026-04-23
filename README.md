@@ -22,11 +22,57 @@ This library runs Claude Code with `--dangerously-skip-permissions`, which **byp
 
 Do not expose this bot to public or untrusted Slack workspaces.
 
-## Installation
+## Installation & Setup
+
+### Step 1 — Create a Slack App
+
+1. Go to https://api.slack.com/apps → "Create New App" → "From scratch"
+2. **OAuth & Permissions** → Bot Token Scopes → add `app_mentions:read`, `chat:write`, `channels:history`
+3. **Socket Mode** → Enable → generate an App-Level Token (scope: `connections:write`) → save the `xapp-...` token
+4. **Event Subscriptions** → Enable → Subscribe to bot events → add `app_mention`
+5. **OAuth & Permissions** → Install to Workspace → save the `xoxb-...` Bot Token
+
+> You need two tokens: `SLACK_BOT_TOKEN` (`xoxb-...`) and `SLACK_APP_TOKEN` (`xapp-...`).  
+> If you see `xoxe.xoxp-...` instead, you are looking at a User Token — the Bot Token is on a separate row.  
+> See [docs/slack-app-setup.md](docs/slack-app-setup.md) for details.
+
+### Step 2 — Install the library
 
 ```bash
 pip install git+ssh://git@github.com/fumihiko-takahashi/slack-claude-bot.git
 ```
+
+### Step 3 — Configure environment variables
+
+```bash
+# Find your Claude Code session directory
+ls ~/.claude/projects/
+# e.g. -home-alice-myproject
+
+# Find the full path to the claude binary
+which claude
+# e.g. /home/alice/.local/bin/claude
+
+export SLACK_BOT_TOKEN=xoxb-...
+export SLACK_APP_TOKEN=xapp-...
+export CLAUDE_PROJECT_DIR=~/.claude/projects/-home-alice-myproject
+export CLAUDE_PATH=/home/alice/.local/bin/claude
+```
+
+> `CLAUDE_PROJECT_DIR`: the working directory path with `/` replaced by `-` under `~/.claude/projects/`.  
+> `CLAUDE_PATH`: always use the full path — environments like systemd do not inherit the shell PATH.  
+> See [docs/configuration.md](docs/configuration.md) for all options.
+
+### Step 4 — Run
+
+```bash
+python -m slack_claude_bot
+# or
+slack-claude-bot
+```
+
+Mention the bot in any channel it has been invited to and it will reply in the thread.  
+For persistent deployment via systemd, see [docs/deployment.md](docs/deployment.md).
 
 ## Quick Start
 
