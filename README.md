@@ -11,6 +11,17 @@ A Python library that forwards Slack mentions and thread replies to the [Claude 
 - Built-in commands: `!help` / `!reset` / `!reset all` / `!compact`
 - Custom command extension via `register_command()` or `@bot.command()` decorator
 
+## ⚠️ Security Notice
+
+This library runs Claude Code with `--dangerously-skip-permissions`, which **bypasses all confirmation prompts** for file writes, command execution, and other potentially destructive actions.
+
+**Only use this in environments where both of the following are true:**
+
+- The instance is dedicated to this bot (not a shared server)
+- Every member of the Slack workspace is trusted
+
+Do not expose this bot to public or untrusted Slack workspaces.
+
 ## Installation
 
 ```bash
