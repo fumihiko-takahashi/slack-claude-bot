@@ -1,0 +1,71 @@
+# 内部実装の詳細
+
+## なぜ `--dangerously-skip-permissions` が必要か
+
+Claude Code は通常、ファイル書き込みやコマンド実行の前にターミナルで確認を求める：
+
+```
+Do you want to run this command?
+  python experiment.py
+❯ Yes  No
+```
+
+subprocess から呼び出した場合、stdin が繋がっていないためこのプロンプトで処理が無限にブロックされる。  
+`--dangerously-skip-permissions` はこの確認をスキップするフラグ。
+
+このライブラリは個人用途・実験専用インスタンスでの利用を前提としており、Slack ワークスペースのメンバーを信頼できる環境での使用を想定している。
+
+---
+
+## セッション管理の仕組み
+
+### スレッドとセッションの対応
+
+Slack の `thread_ts`（スレッドのタイムスタンプ）をキーに、Claude Code の `session_id` を SQLite で管理する。
+
+```
+Slack thread_ts  ↔  Claude Code session_id
+   "1234567890"  →  "abc12345-..."
+```
+
+同じスレッドへの返信が来たとき `--resume <session_id>` で会話を継続する。
+
+### セッション ID の取得方法
+
+`--session-id` フラグには以下の制約がある（実際に試して判明）：
+
+- `--resume` なしで `--session-id` 単体 → エラー
+- `--session-id` と `--resume` の同時指定 → エラー（`--fork-session` が必要と言われる）
+
+そのため、新規セッションはフラグなしで実行し、完了後に `~/.claude/projects/{project_dir}/` 以下の最新 `.jsonl` ファイル名からセッション ID を取得する。
+
+```python
+# runner.py の実装イメージ
+def _latest_session_id(self):
+    files = glob.glob(f"{self.project_dir}/*.jsonl")
+    latest = max(files, key=os.path.getmtime)
+    return os.path.basename(latest).replace(".jsonl", "")
+```
+
+### ロックの仕組み
+
+同一スレッドへの連続メッセージで Claude が並列起動しないよう、SQLite の `locks` テーブルで排他制御している。  
+`INSERT` の一意制約（`thread_ts` が PRIMARY KEY）を利用しており、二重取得時は `IntegrityError` が発生してロック失敗と判断する。
+
+TTL（デフォルト: runner の timeout + 30分）を超えた残留ロックは次回の `acquire_lock` 時に自動削除される。  
+起動時にも `clear_all_locks()` を呼び出してクラッシュ時の残留ロックをクリアする。
+
+---
+
+## タイムアウト時の挙動
+
+`subprocess.run()` はタイムアウト時に内部で `process.kill()` を呼ぶため、Claude のプロセスは強制終了される（バックグラウンドで継続することはない）。
+
+タイムアウト後でもセッション ID を取得・保存しておくことで、次のメッセージで `--resume` による再開が可能：
+
+```python
+except subprocess.TimeoutExpired:
+    if not session_id:
+        session_id = self._latest_session_id()
+    return "⏱ タイムアウトしました。続きから再開するには返信してください。", session_id
+```
