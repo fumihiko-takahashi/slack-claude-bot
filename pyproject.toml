@@ -16,6 +16,9 @@ dependencies = [
 [project.scripts]
 slack-claude-bot = "slack_claude_bot.cli:main"
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/slack_claude_bot"]
 
