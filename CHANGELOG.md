@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.1] - 2026-04-24
 
 ### Fixed
 - Added `__main__.py` to enable `python -m slack_claude_bot` execution for systemd deployment
