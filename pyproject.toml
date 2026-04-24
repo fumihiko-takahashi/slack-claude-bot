@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "slack-claude-bot"
-version = "0.1.0"
+version = "0.1.1"
 description = "Slack bot that proxies messages to Claude Code CLI with session and lock management"
 readme = "README.md"
 license = { text = "MIT" }
@@ -15,6 +15,9 @@ dependencies = [
 
 [project.scripts]
 slack-claude-bot = "slack_claude_bot.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/slack_claude_bot"]
