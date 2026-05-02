@@ -24,6 +24,18 @@ class ClaudeRunner:
         latest = max(files, key=os.path.getmtime)
         return os.path.basename(latest).replace(".jsonl", "")
 
+    def _get_context_window_size(self, model_id: str) -> int:
+        """モデルIDからコンテキストウィンドウサイズを取得"""
+        if not model_id:
+            return 200000  # デフォルト
+
+        # 1M context window models
+        if model_id in ['claude-opus-4-7', 'claude-opus-4-6', 'claude-sonnet-4-6']:
+            return 1000000
+
+        # 200K context window models (default)
+        return 200000
+
     def _get_context_usage(self, session_id: str | None) -> float | None:
         """トランスクリプトファイルから最新のコンテキスト使用率を計算"""
         if not session_id:
@@ -51,13 +63,15 @@ class ClaudeRunner:
                     data = json.loads(line)
                     if "message" in data and "usage" in data["message"]:
                         usage = data["message"]["usage"]
+                        model_id = data["message"].get("model", "")
+
                         input_tokens = usage.get("input_tokens", 0)
                         cache_creation = usage.get("cache_creation_input_tokens", 0)
                         cache_read = usage.get("cache_read_input_tokens", 0)
 
-                        # context_window_sizeのデフォルトは200,000トークン
+                        # モデルに応じたcontext window sizeを取得
                         total_input = input_tokens + cache_creation + cache_read
-                        context_window_size = 200000
+                        context_window_size = self._get_context_window_size(model_id)
                         used_percentage = (total_input / context_window_size) * 100
                         return round(used_percentage, 1)
                 except json.JSONDecodeError:
