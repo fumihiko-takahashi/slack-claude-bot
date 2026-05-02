@@ -132,10 +132,14 @@ class SlackClaudeBot:
                 channel=channel, thread_ts=thread_ts, text="⚙️ 実行中..."
             )
             session_id = self.db.get_session(thread_ts)
-            result, new_session_id = self.runner.run(text, session_id)
+            result, new_session_id, context_usage = self.runner.run(text, session_id)
 
             if new_session_id:
                 self.db.save_session(thread_ts, new_session_id, channel)
+
+            # コンテキスト使用率を返信に追加
+            if context_usage is not None:
+                result = f"{result}\n\n（コンテキスト使用率: {context_usage}%）"
 
             self.app.client.chat_postMessage(
                 channel=channel, thread_ts=thread_ts, text=result

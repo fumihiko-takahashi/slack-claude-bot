@@ -19,7 +19,7 @@ def test_run_success(project_dir):
     mock_proc.stdout = "hello"
 
     with patch("subprocess.run", return_value=mock_proc) as mock_run:
-        output, session_id = runner.run("say hello")
+        output, session_id, context_usage = runner.run("say hello")
 
     assert output == "hello"
     mock_run.assert_called_once()
@@ -34,7 +34,7 @@ def test_run_with_session(project_dir):
     mock_proc.stdout = "ok"
 
     with patch("subprocess.run", return_value=mock_proc) as mock_run:
-        runner.run("do something", session_id="sess-123")
+        output, session_id, context_usage = runner.run("do something", session_id="sess-123")
 
     args = mock_run.call_args[0][0]
     assert "--resume" in args
@@ -46,7 +46,7 @@ def test_run_timeout(project_dir):
     runner = ClaudeRunner(project_dir=project_dir, timeout=1)
 
     with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("claude", 1)):
-        output, _ = runner.run("slow task")
+        output, _, _ = runner.run("slow task")
 
     assert "タイムアウト" in output
 
@@ -57,6 +57,6 @@ def test_run_empty_output(project_dir):
     mock_proc.stdout = "   "
 
     with patch("subprocess.run", return_value=mock_proc):
-        output, _ = runner.run("silent task")
+        output, _, _ = runner.run("silent task")
 
     assert output == "（出力なし）"
