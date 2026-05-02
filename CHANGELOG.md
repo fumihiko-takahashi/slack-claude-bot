@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.0] - 2026-05-02
+
+### Added
+- Dynamic context window size detection based on model ID
+- `ClaudeRunner._get_context_window_size()` method to determine window size (200K or 1M) from model ID
+
+### Changed
+- Context usage calculation now uses actual model context window size instead of hardcoded 200K
+- Supports 1M context window for Claude Opus 4.7, Opus 4.6, and Sonnet 4.6
+
 ## [0.2.0] - 2026-05-02
 
 ### Added
