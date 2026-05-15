@@ -18,18 +18,29 @@ This library is designed for personal use on a dedicated instance where the Slac
 
 ---
 
+## Runner Selection
+
+Slack handling only calls `runner.run(instruction, session_id)`. Claude Code uses `ClaudeRunner`, Codex uses `CodexRunner`, and `BOT_RUNNER` selects the implementation.
+
+`!compact` depends on Claude Code's `/compact` command, so Codex runner replies that it is unsupported.
+
+---
+
 ## Session Management
 
 ### Thread-to-session mapping
 
-Slack's `thread_ts` (thread timestamp) is used as the key to map to a Claude Code `session_id` stored in SQLite.
+Slack's `thread_ts` (thread timestamp) and the runner provider are used as the key to map to a CLI `session_id` stored in SQLite.
 
 ```
-Slack thread_ts  ↔  Claude Code session_id
-   "1234567890"  →  "abc12345-..."
+Slack thread_ts + provider  ↔  session_id
+"1234567890" + "claude"     →  "abc12345-..."
+"1234567890" + "codex"      →  "019e..."
 ```
 
-When a reply arrives in an existing thread, `--resume <session_id>` continues the conversation.
+When a reply arrives in an existing thread, `--resume <session_id>` continues the conversation for Claude Code. Codex uses `codex exec resume <session_id>`.
+
+Codex global options such as `--ask-for-approval`, `--sandbox`, and `--dangerously-bypass-approvals-and-sandbox` are placed before the `exec` subcommand. Some Codex versions fail when those options are passed as `codex exec --ask-for-approval never ...`.
 
 ### How session IDs are obtained
 
@@ -46,6 +57,8 @@ def _latest_session_id(self):
     latest = max(files, key=os.path.getmtime)
     return os.path.basename(latest).replace(".jsonl", "")
 ```
+
+Codex session IDs are read from `session_meta.payload.id` in `~/.codex/sessions/YYYY/MM/DD/*.jsonl`.
 
 ---
 

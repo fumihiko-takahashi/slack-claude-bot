@@ -1,19 +1,19 @@
 # slack-claude-bot
 
-A Python library that forwards Slack mentions and thread replies to the [Claude Code](https://claude.ai/code) CLI. Maintains conversation history per thread and prevents concurrent execution with a per-thread lock.
+A Python library that forwards Slack mentions and thread replies to the [Claude Code](https://claude.ai/code) CLI or Codex CLI. Maintains conversation history per thread and prevents concurrent execution with a per-thread lock.
 
 [日本語版 README はこちら](README_ja.md)
 
 ## Features
 
-- Thread-scoped session continuity via Claude Code `--resume`
+- Thread-scoped session continuity via Claude Code or Codex
 - Per-thread exclusive lock (prevents parallel execution)
 - Built-in commands: `!help` / `!reset` / `!reset all` / `!compact`
 - Custom command extension via `register_command()` or `@bot.command()` decorator
 
 ## ⚠️ Security Notice
 
-This library runs Claude Code with `--dangerously-skip-permissions`, which **bypasses all confirmation prompts** for file writes, command execution, and other potentially destructive actions.
+This library runs Claude Code with `--dangerously-skip-permissions`. When using Codex, setting `CODEX_DANGEROUS_BYPASS=true` similarly bypasses approvals and sandboxing. These settings **bypass confirmation prompts** for file writes, command execution, and other potentially destructive actions.
 
 **Only use this in environments where both of the following are true:**
 
@@ -63,12 +63,38 @@ export CLAUDE_PATH=/home/alice/.local/bin/claude
 > `CLAUDE_PATH`: always use the full path — environments like systemd do not inherit the shell PATH.  
 > See [docs/configuration.md](docs/configuration.md) for all options.
 
+To use Codex CLI instead:
+
+```bash
+export SLACK_BOT_TOKEN=xoxb-...
+export SLACK_APP_TOKEN=xapp-...
+export BOT_RUNNER=codex
+export CODEX_WORKDIR=/home/alice/myproject
+export CODEX_PATH=/home/alice/.local/bin/codex
+export CODEX_DANGEROUS_BYPASS=true
+```
+
 ### Step 4 — Run
 
 ```bash
 python -m slack_claude_bot
 # or
 slack-claude-bot
+```
+
+### Run with Codex CLI
+
+```bash
+export SLACK_BOT_TOKEN=xoxb-...
+export SLACK_APP_TOKEN=xapp-...
+export BOT_RUNNER=codex
+export CODEX_WORKDIR=/home/alice/myproject
+export CODEX_PATH=/home/alice/.local/bin/codex     # optional
+export CODEX_TIMEOUT=10800                         # optional, seconds (default: 3h)
+export CODEX_MODEL=gpt-5.2                         # optional
+export CODEX_DANGEROUS_BYPASS=true                 # default for unattended/systemd use
+
+python -m slack_claude_bot
 ```
 
 Mention the bot in any channel it has been invited to and it will reply in the thread.  
@@ -140,7 +166,7 @@ bot.register_command("!bar", handle_bar, description="description")
 ## Requirements
 
 - Python 3.10+
-- Claude Code CLI (`claude` command)
+- Claude Code CLI (`claude` command) or Codex CLI (`codex` command)
 - `slack-bolt >= 1.20`
 
 ## Documentation

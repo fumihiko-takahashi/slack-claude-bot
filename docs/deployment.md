@@ -31,6 +31,22 @@ WantedBy=multi-user.target
 
 > **Note**: Do not write just `claude` for `CLAUDE_PATH`. systemd does not inherit the shell PATH, which causes a `No such file or directory` error. Confirm the full path with `which claude` first.
 
+To use Codex CLI, replace the Claude-specific environment variables with:
+
+```ini
+Environment="BOT_RUNNER=codex"
+Environment="CODEX_WORKDIR=/home/your-username/your-project"
+Environment="CODEX_PATH=/home/your-username/.local/bin/codex"
+Environment="PATH=/home/your-username/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="CODEX_DANGEROUS_BYPASS=true"
+```
+
+If `CODEX_PATH` points into an nvm or other Node.js-managed directory, include that directory in `PATH`. Codex CLI may use a `/usr/bin/env node` shebang, and systemd's default `PATH` may not find `node`.
+
+This library passes Codex global options as `codex --ask-for-approval never exec ...`. Some Codex versions reject the `codex exec --ask-for-approval never ...` order.
+
+Codex sandboxing can fail under systemd with `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`, so CLI startup defaults `CODEX_DANGEROUS_BYPASS=true` for unattended runs.
+
 ### Enable and start
 
 ```bash
@@ -61,12 +77,18 @@ When using custom commands, point `ExecStart` at a script like this instead of `
 ```python
 # main.py
 import os
-from slack_claude_bot import SlackClaudeBot, ClaudeRunner, SessionDB
+from slack_claude_bot import SlackClaudeBot, ClaudeRunner, CodexRunner, SessionDB
 
-runner = ClaudeRunner(
-    project_dir=os.environ["CLAUDE_PROJECT_DIR"],
-    claude_path=os.environ.get("CLAUDE_PATH", "claude"),
-)
+if os.environ.get("BOT_RUNNER") == "codex":
+    runner = CodexRunner(
+        workdir=os.environ.get("CODEX_WORKDIR", os.getcwd()),
+        codex_path=os.environ.get("CODEX_PATH", "codex"),
+    )
+else:
+    runner = ClaudeRunner(
+        project_dir=os.environ["CLAUDE_PROJECT_DIR"],
+        claude_path=os.environ.get("CLAUDE_PATH", "claude"),
+    )
 db = SessionDB(db_path=os.environ.get("SESSION_DB_PATH", "sessions.db"))
 bot = SlackClaudeBot(
     slack_bot_token=os.environ["SLACK_BOT_TOKEN"],

@@ -27,6 +27,14 @@ def test_session_update(db):
     assert db.get_session("ts1") == "sess-xyz"
 
 
+def test_session_provider_isolated(db):
+    db.save_session("ts1", "claude-sess", "C123", provider="claude")
+    db.save_session("ts1", "codex-sess", "C123", provider="codex")
+
+    assert db.get_session("ts1", provider="claude") == "claude-sess"
+    assert db.get_session("ts1", provider="codex") == "codex-sess"
+
+
 def test_unknown_session(db):
     assert db.get_session("unknown") is None
 

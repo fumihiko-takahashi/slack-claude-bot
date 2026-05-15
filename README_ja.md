@@ -1,19 +1,19 @@
 # slack-claude-bot
 
-Slack のメンション・スレッド返信を [Claude Code](https://claude.ai/code) CLI に転送する Python ライブラリ。スレッドごとに会話履歴を保持し、同時実行を排他制御する。
+Slack のメンション・スレッド返信を [Claude Code](https://claude.ai/code) CLI または Codex CLI に転送する Python ライブラリ。スレッドごとに会話履歴を保持し、同時実行を排他制御する。
 
 [English README](README.md)
 
 ## Features
 
-- スレッドスコープのセッション継続（Claude Code `--resume`）
+- スレッドスコープのセッション継続（Claude Code / Codex）
 - スレッドごとの排他ロック（並列実行防止）
 - 組み込みコマンド: `!help` / `!reset` / `!reset all` / `!compact`
 - `register_command()` / `@bot.command()` によるカスタムコマンド拡張
 
 ## ⚠️ セキュリティに関する注意
 
-このライブラリは Claude Code を `--dangerously-skip-permissions` で実行します。これにより、ファイル書き込みやコマンド実行などの操作における**確認プロンプトがすべてスキップ**されます。
+このライブラリは Claude Code を `--dangerously-skip-permissions` で実行します。Codex 利用時も `CODEX_DANGEROUS_BYPASS=true` を指定すると確認とサンドボックスをバイパスできます。これらの設定では、ファイル書き込みやコマンド実行などの操作における**確認プロンプトがすべてスキップ**されます。
 
 **以下の条件をどちらも満たす環境でのみ使用してください：**
 
@@ -63,6 +63,17 @@ export CLAUDE_PATH=/home/alice/.local/bin/claude
 > `CLAUDE_PATH`: systemd など PATH を引き継がない環境で詰まらないよう、必ずフルパスで指定する。  
 > 全オプションは [docs/configuration_ja.md](docs/configuration_ja.md) を参照。
 
+Codex CLI を使う場合:
+
+```bash
+export SLACK_BOT_TOKEN=xoxb-...
+export SLACK_APP_TOKEN=xapp-...
+export BOT_RUNNER=codex
+export CODEX_WORKDIR=/home/alice/myproject
+export CODEX_PATH=/home/alice/.local/bin/codex
+export CODEX_DANGEROUS_BYPASS=true
+```
+
 ### Step 4 — 起動する
 
 ```bash
@@ -89,6 +100,21 @@ export CLAUDE_TIMEOUT=10800                        # 省略可（デフォルト
 python -m slack_claude_bot
 # または
 slack-claude-bot
+```
+
+### Codex CLI で起動
+
+```bash
+export SLACK_BOT_TOKEN=xoxb-...
+export SLACK_APP_TOKEN=xapp-...
+export BOT_RUNNER=codex
+export CODEX_WORKDIR=/home/alice/myproject
+export CODEX_PATH=/home/alice/.local/bin/codex     # 省略可
+export CODEX_TIMEOUT=10800                         # 省略可（デフォルト: 3時間）
+export CODEX_MODEL=gpt-5.2                         # 省略可
+export CODEX_DANGEROUS_BYPASS=true                 # systemd 等の無人実行ではデフォルト
+
+python -m slack_claude_bot
 ```
 
 ### カスタムコマンドを追加する場合
@@ -140,7 +166,7 @@ bot.register_command("!bar", handle_bar, description="説明文")
 ## 動作要件
 
 - Python 3.10+
-- Claude Code CLI（`claude` コマンド）
+- Claude Code CLI（`claude` コマンド）または Codex CLI（`codex` コマンド）
 - `slack-bolt >= 1.20`
 
 ## ドキュメント

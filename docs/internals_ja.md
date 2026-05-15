@@ -19,18 +19,29 @@ subprocess から呼び出した場合、stdin が繋がっていないためこ
 
 ---
 
+## Runner の切り替え
+
+Slack 側の処理は runner の `run(instruction, session_id)` だけを呼び出す。Claude Code では `ClaudeRunner`、Codex では `CodexRunner` を使い、`BOT_RUNNER` 環境変数で選択する。
+
+`!compact` は Claude Code の `/compact` に依存しているため、Codex runner では未対応として返答する。
+
+---
+
 ## セッション管理の仕組み
 
 ### スレッドとセッションの対応
 
-Slack の `thread_ts`（スレッドのタイムスタンプ）をキーに、Claude Code の `session_id` を SQLite で管理する。
+Slack の `thread_ts`（スレッドのタイムスタンプ）と runner provider をキーに、CLI の `session_id` を SQLite で管理する。
 
 ```
-Slack thread_ts  ↔  Claude Code session_id
-   "1234567890"  →  "abc12345-..."
+Slack thread_ts + provider  ↔  session_id
+"1234567890" + "claude"     →  "abc12345-..."
+"1234567890" + "codex"      →  "019e..."
 ```
 
-同じスレッドへの返信が来たとき `--resume <session_id>` で会話を継続する。
+同じスレッドへの返信が来たとき、Claude Code は `--resume <session_id>`、Codex は `codex exec resume <session_id>` で会話を継続する。
+
+Codex の `--ask-for-approval`、`--sandbox`、`--dangerously-bypass-approvals-and-sandbox` は `exec` サブコマンドの前に置く。`codex exec --ask-for-approval never ...` の順序では失敗するバージョンがある。
 
 ### セッション ID の取得方法
 
@@ -47,6 +58,8 @@ def _latest_session_id(self):
     latest = max(files, key=os.path.getmtime)
     return os.path.basename(latest).replace(".jsonl", "")
 ```
+
+Codex は `~/.codex/sessions/YYYY/MM/DD/*.jsonl` の `session_meta.payload.id` を session ID として取得する。
 
 ---
 

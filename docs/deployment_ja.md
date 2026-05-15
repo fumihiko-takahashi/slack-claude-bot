@@ -32,6 +32,22 @@ WantedBy=multi-user.target
 > **注意**: `CLAUDE_PATH` に `claude` とだけ書くと systemd の起動時に PATH が引き継がれず失敗する。  
 > `which claude` でフルパスを確認してから指定すること。
 
+Codex CLI を使う場合は、Claude 用の環境変数の代わりに以下を指定する：
+
+```ini
+Environment="BOT_RUNNER=codex"
+Environment="CODEX_WORKDIR=/home/your-username/your-project"
+Environment="CODEX_PATH=/home/your-username/.local/bin/codex"
+Environment="PATH=/home/your-username/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="CODEX_DANGEROUS_BYPASS=true"
+```
+
+`CODEX_PATH` が nvm などの Node.js 管理ディレクトリ配下にある場合は、そのディレクトリを `PATH` に含める。Codex CLI の shebang が `/usr/bin/env node` のため、systemd のデフォルト `PATH` では node が見つからないことがある。
+
+このライブラリは Codex のグローバルオプションを `codex --ask-for-approval never exec ...` の順で渡す。Codex のバージョンによっては `codex exec --ask-for-approval never ...` の順序では失敗するため。
+
+systemd の制約で Codex sandbox が `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted` になる場合があるため、無人実行の CLI 起動では `CODEX_DANGEROUS_BYPASS=true` をデフォルトにしている。
+
 ### 起動・有効化
 
 ```bash
@@ -62,12 +78,18 @@ sudo systemctl disable slack-claude-bot
 ```python
 # main.py
 import os
-from slack_claude_bot import SlackClaudeBot, ClaudeRunner, SessionDB
+from slack_claude_bot import SlackClaudeBot, ClaudeRunner, CodexRunner, SessionDB
 
-runner = ClaudeRunner(
-    project_dir=os.environ["CLAUDE_PROJECT_DIR"],
-    claude_path=os.environ.get("CLAUDE_PATH", "claude"),
-)
+if os.environ.get("BOT_RUNNER") == "codex":
+    runner = CodexRunner(
+        workdir=os.environ.get("CODEX_WORKDIR", os.getcwd()),
+        codex_path=os.environ.get("CODEX_PATH", "codex"),
+    )
+else:
+    runner = ClaudeRunner(
+        project_dir=os.environ["CLAUDE_PROJECT_DIR"],
+        claude_path=os.environ.get("CLAUDE_PATH", "claude"),
+    )
 db = SessionDB(db_path=os.environ.get("SESSION_DB_PATH", "sessions.db"))
 bot = SlackClaudeBot(
     slack_bot_token=os.environ["SLACK_BOT_TOKEN"],

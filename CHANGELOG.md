@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0] - 2026-05-15
+
+### Added
+- Add Codex CLI support via `CodexRunner`
+- Add `BOT_RUNNER=claude|codex` runner selection
+- Add Codex environment options for workdir, model, sandbox, approval, timeout, extra args, and Codex home
+- Store sessions per Slack thread and runner provider so Claude and Codex sessions do not conflict
+
+### Changed
+- Generalize Slack bot runner typing so custom runners can implement the same `run()` interface
+- Make `!compact` Claude-only and return an unsupported message for Codex
+- Pass Codex global options before the `exec` subcommand for CLI compatibility
+- Prepend the Codex binary directory to `PATH` when running Codex, helping systemd find Node.js
+- Default Codex CLI startup to bypass approvals and sandboxing for unattended systemd runs
+
+### Documentation
+- Document Codex setup, configuration, systemd deployment, and internal session handling in English and Japanese
+
 ## [0.3.0] - 2026-05-02
 
 ### Added
