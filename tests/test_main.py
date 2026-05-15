@@ -18,9 +18,9 @@ def test_main_module_execution_requires_env():
     """Test that running as module fails with proper error when env vars missing"""
     import os
     env = os.environ.copy()
-    # Remove any Slack/Claude env vars that might be set
+    # Remove any Slack/runner env vars that might be set
     for key in list(env.keys()):
-        if key.startswith(("SLACK_", "CLAUDE_")):
+        if key.startswith(("SLACK_", "CLAUDE_", "CODEX_")) or key == "BOT_RUNNER":
             del env[key]
 
     result = subprocess.run(

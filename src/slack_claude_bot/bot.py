@@ -6,7 +6,7 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 from .db import SessionDB
-from .runner import ClaudeRunner
+from .runner import Runner
 
 CommandHandler = Callable[[str, str, str], str | None]
 
@@ -16,7 +16,7 @@ class SlackClaudeBot:
         self,
         slack_bot_token: str,
         slack_app_token: str,
-        runner: ClaudeRunner,
+        runner: Runner,
         db: SessionDB,
     ):
         self.app_token = slack_app_token
@@ -74,6 +74,8 @@ class SlackClaudeBot:
             return "🔓 すべてのスレッドのロックを解放しました。"
 
         def _compact(channel, thread_ts, text):
+            if self.runner.provider != "claude":
+                return "この runner では `!compact` は未対応です。"
             # /compact は Claude Code スラッシュコマンドとして処理
             threading.Thread(
                 target=self._execute,
@@ -131,11 +133,11 @@ class SlackClaudeBot:
             self.app.client.chat_postMessage(
                 channel=channel, thread_ts=thread_ts, text="⚙️ 実行中..."
             )
-            session_id = self.db.get_session(thread_ts)
+            session_id = self.db.get_session(thread_ts, self.runner.provider)
             result, new_session_id, context_usage = self.runner.run(text, session_id)
 
             if new_session_id:
-                self.db.save_session(thread_ts, new_session_id, channel)
+                self.db.save_session(thread_ts, new_session_id, channel, self.runner.provider)
 
             # コンテキスト使用率を返信に追加
             if context_usage is not None:

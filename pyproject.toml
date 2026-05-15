@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "slack-claude-bot"
-version = "0.3.0"
-description = "Slack bot that proxies messages to Claude Code CLI with session and lock management"
+version = "0.4.0"
+description = "Slack bot that proxies messages to Claude Code or Codex CLI with session and lock management"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
