@@ -121,8 +121,6 @@ class ClaudeRunner:
             )
         except Exception as e:
             return f"エラー: {e}", session_id, None
-
-
 class CodexRunner:
     provider = "codex"
 
